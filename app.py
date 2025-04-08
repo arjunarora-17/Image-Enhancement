@@ -43,14 +43,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Bottom-right Reset button
-st.markdown("""
-    <div class='bottom-right'>
-        <form action="" method="post">
-            <button name="reset" type="submit">🔄 Reset</button>
-        </form>
-    </div>
-""", unsafe_allow_html=True)
+# Bottom-right Reset button using Streamlit-native method
+with st.container():
+    if st.button("🔄 Reset", key="reset_button"):
+        st.session_state.clear()
+        st.rerun()
+
 
 if "reset" in st.session_state:
     st.session_state.clear()
