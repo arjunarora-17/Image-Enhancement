@@ -1,14 +1,10 @@
 tensorflow
-huggingface-hub
-keras 
-matplotlib
-numpy
-opencv-python
+streamlit
+ultralytics
 opencv-python-headless
 pandas
 requests
 scipy
-streamlit
 torch
 torchvision
 transformers
