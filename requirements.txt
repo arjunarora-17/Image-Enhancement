@@ -4,6 +4,7 @@ keras
 matplotlib
 numpy
 opencv-python
+opencv-python-headless
 pandas
 requests
 scipy
