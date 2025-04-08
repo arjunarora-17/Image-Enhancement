@@ -1,0 +1,13 @@
+tensorflow
+huggingface-hub
+keras 
+matplotlib
+numpy
+opencv-python
+pandas
+requests
+scipy
+streamlit
+torch
+torchvision
+transformers
