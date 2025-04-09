@@ -20,6 +20,13 @@ from dark_ir_wrapper import enhance_darkir_image
 from zero_dce_wrapper import enhance_zero_dce_image
 from bimef_wrapper import enhance_bimef_image
 
+# Load YOLO model once
+@st.cache_resource
+def load_model():
+    return YOLO("yolov5s.pt")
+
+
+
 # Default Streamlit theme and layout
 st.set_page_config(page_title="Low-Light Image Enhancement", layout="wide")
 
@@ -90,6 +97,8 @@ with col_full:
         else:
             st.warning("Please upload or select an image.")
             st.stop()
+        MAX_SIZE = (640, 640)
+        input_image.thumbnail(MAX_SIZE, Image.LANCZOS)
 
         with st.spinner(f"Enhancing image using {method}..."):
             if method == "LIME":
@@ -114,7 +123,7 @@ with col_full:
 
         # Object Detection
         with st.spinner("Running YOLOv5 object detection..."):
-            model = YOLO("yolov5s.pt")
+            model = load_model()
 
             temp_orig = os.path.join(tempfile.gettempdir(), "temp_orig.png")
             input_image.save(temp_orig)
@@ -136,3 +145,4 @@ with col_full:
             st.image(annotated_orig_pil, caption="YOLO on Original Image", use_container_width=True)
         with col_d:
             st.image(annotated_enh_pil, caption=f"YOLO on {method} Enhanced Image", use_container_width=True)
+        del input_image, output_image, annotated_orig_pil, annotated_enh_pil
