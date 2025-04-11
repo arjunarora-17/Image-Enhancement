@@ -20,19 +20,12 @@ def BIMEF(I, mu=0.5, k=None, a=-0.3293, b=1.1258):
 
     def maxEntropyEnhance(I, isBad=None):
         Y = rgb2gm(np.real(np.maximum(imresize(I, output_shape=(50, 50)), 0)))
-        # imresize(I, output_shape=(50, 50)) matches MATLAB with tolerance = 1e-14
-        # np.real(np.maximum(..., 0)) usually does nothing
-        # Y matches MATLAB with tolerance = 1e-16
 
         if not (isBad is None):
-            isBad = (255*isBad).astype(np.uint8)  # converts bool array to uint8 array * 255
+            isBad = (255*isBad).astype(np.uint8) 
             isBad = imresize(isBad, output_shape=(50, 50))
-            isBad = isBad > 128  # converts uint8 array to bool array
-            # isBad matches MATLAB exactly
+            isBad = isBad > 128 
             Y = Y.T[isBad.T]
-            # since python iterates row-first, we must take transpose of Y and isBad to iterate column-first like MATLAB
-            # Y matches MATLAB with tolerance = 1e-15
-            # we leave Y in the shape of a 1D array instead of converting to a column vector like in MATLAB
 
         if Y.size == 0:
             J = I
@@ -42,7 +35,7 @@ def BIMEF(I, mu=0.5, k=None, a=-0.3293, b=1.1258):
             applied_k = applyK(Y, k)
             applied_k[applied_k > 1] = 1
             applied_k[applied_k < 0] = 0
-            scaled_applied_k = 255*applied_k + 0.5  # we add 0.5 to round like MATLAB instead of truncating
+            scaled_applied_k = 255*applied_k + 0.5 
             int_applied_k = scaled_applied_k.astype(np.uint8)
             hist = np.bincount(int_applied_k, minlength=256)
             nonzero_hist = hist[hist != 0]
@@ -51,7 +44,7 @@ def BIMEF(I, mu=0.5, k=None, a=-0.3293, b=1.1258):
             return negative_entropy
 
         opt_k = fminbound(func=lambda k: find_negative_entropy(Y, k), x1=1.0, x2=7.0, full_output=False)
-        J = applyK(I, opt_k) - 0.01  # J has tolerance of 1e-5
+        J = applyK(I, opt_k) - 0.01  
 
         return J
 
@@ -60,42 +53,32 @@ def BIMEF(I, mu=0.5, k=None, a=-0.3293, b=1.1258):
     lamb = 0.5
     sigma = 5
 
-    # t: scene illumination map
     t_b = np.amax(I, axis=2)
     t_our = imresize(tsmooth(imresize(t_b, scalar_scale=0.5), lamb, sigma), output_shape=t_b.shape)
-    # We try to replicate MatLab's imresize function, which uses intercubic interpolation and anti-aliasing by default
-    # imresize(t_b, scalar_scale=0.5) matches MATLAB exactly
-    # tsmooth(...) matches MATLAB with tolerance of 1e-14
-    # imresize(tsmooth(...), output_shape = t_b.shape) matches MATLAB with tolerance of 1e-14)
 
-    # k: exposure ratio
-    if k is None or k.size == 0:  # this path is taken
-        isBad = t_our < 0.5  # compare t_our to 0.5 element-wise and creates an array of truth values
-        # isBad matches MATLAB exactly
+    if k is None or k.size == 0:
+        isBad = t_our < 0.5  
         J = maxEntropyEnhance(I, isBad)
     else:
         J = applyK(I, k)
         J = np.minimum(J, 1)
 
-    # W: Weight Matrix
-    t = np.tile(np.expand_dims(t_our, axis=2), (1, 1, I.shape[2]))  # tolerance 1e-14
-    W = t ** mu  # tolerance 1e-14
-    I2 = I * W  # tolerance 1e-14
-    J2 = J * (1.0-W)  # tolerance 1e-7
-    fused = I2 + J2  # tolerance of 1e-6
+    t = np.tile(np.expand_dims(t_our, axis=2), (1, 1, I.shape[2]))  
+    W = t ** mu  
+    I2 = I * W  
+    J2 = J * (1.0-W)  
+    fused = I2 + J2  
 
-    fused[fused > 1] = 1  # fix overflow
-    fused[fused < 0] = 0  # fix underflow
-    fused = (255*fused + 0.5).astype(np.uint8)  # convert double img to uint8
-    # tolerance of +/- 1 on integer pixel values
-
+    fused[fused > 1] = 1  
+    fused[fused < 0] = 0  
+    fused = (255*fused + 0.5).astype(np.uint8)  
     return fused
 
 
 def rgb2gm(I):
     if I.shape[2] == 3:
-        I = im2double(np.maximum(0, I))  # usually does nothing
-        I = (I[:, :, 0] * I[:, :, 1] * I[:, :, 2]) ** (1.0/3.0)  # tolerance: 10e-16
+        I = im2double(np.maximum(0, I)) 
+        I = (I[:, :, 0] * I[:, :, 1] * I[:, :, 2]) ** (1.0/3.0)  
     return I
 
 
@@ -156,9 +139,8 @@ def solveLinearEquation(IN, wx, wy, lamb):
 
     Ax = spdiags(np.concatenate((dxd1, dxd2), axis=1).T, [-k+r, -r], k, k)
     Ay = spdiags(np.concatenate((dyd1, dyd2), axis=1).T, [-r+1, -1], k, k)
-    # diagonals stored row-wise; in MatLab the diagonals are stored column-wise
 
-    D = 1 - (dx + dy + dxa + dya)  # column vector
+    D = 1 - (dx + dy + dxa + dya) 
 
     Axy = Ax + Ay
     A = Axy + Axy.T + spdiags(D.T, 0, k, k)
@@ -169,22 +151,14 @@ def solveLinearEquation(IN, wx, wy, lamb):
         for ii in range(ch):
             tin = IN[:, :, ii]
             tin = np.reshape(tin, (tin.size, 1), order='F')
-            # start_amg = time.time()
-            # ml = pyamg.ruge_stuben_solver(A)
-            # tout = ml.solve(tin)
-            # end_amg = time.time()
-            # time_amg = end_amg-start_amg
-            # print(time_amg)  # run time of 1.04663395882 seconds
-
             start_cholmod = time.time()
             tout = spsolve(A, tin)
             end_cholmod = time.time()
             time_cholmod = end_cholmod-start_cholmod
-            print(time_cholmod)  # run time of 0.731502056122 seconds
+            print(time_cholmod) s
 
-            OUT[:, :, ii] = np.reshape(tout, (r, c), order='F')  # matches the A\tin(:), not the ichol from matlab
+            OUT[:, :, ii] = np.reshape(tout, (r, c), order='F')  
     else:
-        # Solving A*x = tin is extremely slow using np.linalg.lstsq
         OUT = IN
         for ii in range(ch):
             tin = IN[:, :, ii]
@@ -197,7 +171,7 @@ def solveLinearEquation(IN, wx, wy, lamb):
 
 def im2double(im):
     if im.dtype == np.float64:
-        return im  # do nothing if the image array has already been converted to floating points
+        return im  
     else:
-        info = np.iinfo(im.dtype)  # Get the data type of the input image
-        return im.astype(np.float64) / info.max  # Divide all values by the largest possible value in the datatype
+        info = np.iinfo(im.dtype) 
+        return im.astype(np.float64) / info.max  
